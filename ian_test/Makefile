@@ -1,16 +1,16 @@
 CC=gcc
-CFLAGS=-O3 -fPIC -g
-MALLOC_VERSION=FF
+CFLAGS=-fPIC -g
 WDIR=..
-TARGET = control_manager_test
+SRCS = $(wildcard *.c)
+TARGETS= $(patsubst %.c, %, $(SRCS))
 
-all: $(TARGET)
+all: $(TARGETS)
 
-control_manager_test: control_manager_test.c
-	$(CC) $(CFLAGS) -I$(WDIR) -L$(WDIR) -D$(MALLOC_VERSION) -Wl,-rpath=$(WDIR) -o $@ $< -lmymalloc -lrt
+%:%.c 
+	$(CC) $(CFLAGS) -I$(WDIR) -L$(WDIR) -Wl,-rpath=$(WDIR) -o $@ $< -lmymalloc 
 
 clean:
-	rm -f *~ *.o $(TARGET)
+	rm -f *~ *.o $(TARGETS)
 
 clobber:
 	rm -f *~ *.o
