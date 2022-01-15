@@ -1,0 +1,12 @@
+#include <stdlib.h>
+#include <unistd.h>
+
+int main() {
+  int i = 0;
+  while (i < 5) {
+    void * addr = sbrk(10);
+    printf("address: %p with size 10 is allocated\n", addr);
+  }
+
+  return 0;
+}

@@ -1,0 +1,8 @@
+#include <stdio.h>
+
+int main() {
+#ifndef DEBUG
+  fprintf(stderr, "My trace message\n");
+#endif
+  printf("Normal flow\n");
+}
