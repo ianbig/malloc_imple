@@ -15,29 +15,49 @@ void * ff_malloc(size_t size) {
   return chunk;
 }
 
-void ff_free(void * freeBlock) {
+void ff_free(void * toFree) {
+  memory_block_meta * freeBlock = toFree - sizeof(memory_block_meta);
   if (block_manager == NULL) {
     init_memory_control_block();
   }
 
   if (freeBlock->type == MEM_FREE) {
-    fprtinf(stderr, "Error: double free at adress %p\n", ptr);
+    fprintf(stderr, "Error: double free at adress %p\n", freeBlock);
     exit(EXIT_FAILURE);
   }
 
   freeBlock = mergeBlock(freeBlock);
-  insertToList(startCurEnd);
+  insertToList(freeBlock);
 }
 
 void * insertToList(void * toAdd) {
-  toAdd->nextBlock = block_manager->freeListHead;
-  block->manager->freeListHead = toAdd;
+  ((memory_block_meta *)toAdd)->nextBlock = block_manager->freeListHead;
+  block_manager->freeListHead = toAdd;
+#ifdef DEBUG
+  fprintf(stderr,
+          "adding new chunk %p with size %zu to free list\n",
+          toAdd,
+          ((memory_block_meta *)toAdd)->size);
+#endif
 }
 
-void * mergeBlock(void * freeBlock) {
-  void * curNode = block_manager->firstHead;
+// TODO: improve algorithmatic performance to O(1) by convert to doubly linked list
+void * removeFromList(void * toRemove) {
+  memory_block_meta ** ptr = (memory_block_meta **)(&(block_manager->freeListHead));
+  while (*ptr != NULL && *ptr != toRemove) {
+    ptr = &((*ptr)->nextBlock);
+  }
+
+  assert(*ptr != NULL);
+  void * ret = *ptr;
+  *ptr = (*ptr)->nextBlock;
+  return ret;
+}
+
+void * mergeBlock(memory_block_meta * freeBlock) {
+  memory_block_meta * curNode = block_manager->freeListHead;
   void * freeBlockStart = freeBlock;
-  void * freeBlockEnd = freeBlockStart + sizeof(memory_block_meta) + free_block->size;
+  void * freeBlockEnd = freeBlockStart + sizeof(memory_block_meta) + freeBlock->size;
   while (curNode != NULL) {
     void * startCurNode = curNode;
     void * endCurNode = startCurNode + sizeof(memory_block_meta) + curNode->size;
@@ -47,11 +67,21 @@ void * mergeBlock(void * freeBlock) {
         freeBlock = curNode;
       }
 
-      (memory_block_meta *)freeBlock->size += (memory_control_block *)curNode->size;
+      freeBlock->size += ((memory_block_meta *)curNode)->size;
+
+#ifdef DEBUG
+      fprint(stderr,
+             "merging memory block %p with size and %p with size\n",
+             freeBlock,
+             freeBlock->size,
+             curNode,
+             curNode->size);
+#endif
     }
+    curNode = curNode->nextBlock;
   }
 
-  retrun freeBlock;
+  return freeBlock;
 }
 
 void * ff_getBlock(size_t size) {
@@ -61,8 +91,8 @@ void * ff_getBlock(size_t size) {
       // size and startAddr can use previous info as it would not change
       // TODO: maintain the linked list
       freePtr->type = MEM_ALLOCATED;
-      memory_block_meta retChunk = removeFromList(freePtr);
-      return freePtr->data;
+      memory_block_meta * retChunk = removeFromList(freePtr);
+      return retChunk->data;
     }
   }
 

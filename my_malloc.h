@@ -9,13 +9,14 @@ enum MEM_TYPE { MEM_ALLOCATED, MEM_FREE };
 
 typedef enum MEM_TYPE MEM_TYPE;
 
+typedef struct memory_block_meta memory_block_meta;
 struct memory_block_meta {
   size_t size;    // unsiged long type do not include meta data size
   MEM_TYPE type;  // specfiy which type
-  void * nextBlock;
+  memory_block_meta * nextBlock;
+  memory_block_meta * prevBlock;
   void * data;  // start address of this memory block
 };
-typedef struct memory_block_meta memory_block_meta;
 
 struct memory_control_block {
   void * freeListHead;
@@ -27,9 +28,9 @@ typedef struct memory_control_block memory_control_block;
 memory_control_block * block_manager = NULL;
 // function for both first fit and best fit
 
-// first fit
+/* ===== first fit ======*/
 void * ff_malloc(size_t size);
-void ff_free(void * freeBlock);
+void ff_free(void * toFree);
 /*
   @ size: size_t
   return address of memory block
@@ -37,16 +38,21 @@ void ff_free(void * freeBlock);
  */
 void * ff_getBlock(size_t size);
 void init_memory_control_block();
-// merge the adjacent block with freeBlock, and remove merged block in free list (TODO: try to refactor this since it violate SRP)
-void * mergeBlock(void * freeBlock);
-// return removed block
-void * removeFromList(void * toRemove);
-void * insertToList(void * toAdd);
 
 // ff_debug info
 void getBlock_info(memory_block_meta * chunk);
 
-// best fit
+/* ===== best fit ======*/
 void * bf_malloc(size_t size);
 void bf_free(void * ptr);
+
+/* ===== helper function  ======*/
+// merge the adjacent block with freeBlock, and remove merged block in free list (TODO: try to refactor this since it violate SRP)
+void * mergeBlock(memory_block_meta * freeBlock);
+// return removed block
+void * removeFromList(void * toRemove);
+void * insertToList(void * toAdd);
+
+/* debug function for linked list*/
+void printList();
 #endif
