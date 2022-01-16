@@ -61,7 +61,7 @@ void * ff_getBlock(size_t size) {
       // size and startAddr can use previous info as it would not change
       // TODO: maintain the linked list
       freePtr->type = MEM_ALLOCATED;
-      freePtr->nextBlock = NULL;
+      memory_block_meta retChunk = removeFromList(freePtr);
       return freePtr->data;
     }
   }
