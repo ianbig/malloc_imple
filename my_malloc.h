@@ -9,10 +9,11 @@ enum MEM_TYPE { MEM_ALLOCATED, MEM_FREE };
 typedef enum MEM_TYPE MEM_TYPE;
 
 struct memory_block_meta {
-  size_t size;    // unsigedn long
+  size_t size;    // unsiged long type do not include meta data size
   MEM_TYPE type;  // specfiy which type
-  void * nextBlcok;
-  void * startAddr;  // start address of this memory block
+  void * nextBlock;
+  void * preBlock;
+  void * data;  // start address of this memory block
 };
 typedef struct memory_block_meta memory_block_meta;
 
@@ -24,11 +25,26 @@ struct memory_control_block {
 typedef struct memory_control_block memory_control_block;
 
 memory_control_block * block_manager = NULL;
+// function for both first fit and best fit
+
 // first fit
 void * ff_malloc(size_t size);
-void ff_free(void * ptr);
-void * findBlock();
+void ff_free(void * freeBlock);
+/*
+  @ size: size_t
+  return address of memory block
+  use first fit algorithm to find the first fit block, if no such block exist allocate a new data chunk. the function return memory address of the reqeusted data chunk, including the meta data
+ */
+void * ff_getBlock(size_t size);
 void init_memory_control_block();
+// merge the adjacent block with freeBlock, and remove merged block in free list (TODO: try to refactor this since it violate SRP)
+void * mergeBlock(void * freeBlock);
+// return removed block
+void * removeFromList(void * toRemove);
+void * insertToList(void * toAdd);
+
+// ff_debug info
+void getBlock_info(memory_block_meta * chunk);
 
 // best fit
 void * bf_malloc(size_t size);
