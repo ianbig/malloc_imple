@@ -2,6 +2,7 @@
 #define _MY_MALLOC_H
 
 #include <stddef.h>
+#include <stdlib.h>
 #include <sys/types.h>
 // meta information
 enum MEM_TYPE { MEM_ALLOCATED, MEM_FREE };
@@ -12,7 +13,6 @@ struct memory_block_meta {
   size_t size;    // unsiged long type do not include meta data size
   MEM_TYPE type;  // specfiy which type
   void * nextBlock;
-  void * preBlock;
   void * data;  // start address of this memory block
 };
 typedef struct memory_block_meta memory_block_meta;

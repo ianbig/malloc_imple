@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+// TODO: split the memory size
 void * ff_malloc(size_t size) {
   if (block_manager == NULL) {
     init_memory_control_block();
@@ -29,10 +30,7 @@ void ff_free(void * freeBlock) {
 }
 
 void * insertToList(void * toAdd) {
-  toAdd->type = MEM_FREE;
   toAdd->nextBlock = block_manager->freeListHead;
-  block_manager->preBlock = toAdd;
-  toAdd->preBlock = NULL;
   block->manager->freeListHead = toAdd;
 }
 
@@ -43,14 +41,12 @@ void * mergeBlock(void * freeBlock) {
   while (curNode != NULL) {
     void * startCurNode = curNode;
     void * endCurNode = startCurNode + sizeof(memory_block_meta) + curNode->size;
-    if (freeBlockStart - endCurNode == 1) {
+    if ((freeBlockStart - endCurNode == 1) || (startCurNode - freeBlockEnd == 1)) {
       curNode = removeFromList(curNode);
-      freeBlock = curNode;
-      (memory_block_meta *)freeBlock->size += (memory_control_block *)curNode->size;
-    }
+      if (freeBlockStart - endCurNode == 1) {
+        freeBlock = curNode;
+      }
 
-    else if (startCurNode - freeBlockEnd == 1) {
-      curNode = removeFromList(curNode);
       (memory_block_meta *)freeBlock->size += (memory_control_block *)curNode->size;
     }
   }
@@ -65,7 +61,6 @@ void * ff_getBlock(size_t size) {
       // size and startAddr can use previous info as it would not change
       // TODO: maintain the linked list
       freePtr->type = MEM_ALLOCATED;
-      freePtr->preBlock = NULL;
       freePtr->nextBlock = NULL;
       return freePtr->data;
     }
@@ -75,7 +70,6 @@ void * ff_getBlock(size_t size) {
   memory_block_meta * newChunk = sbrk(size + sizeof(memory_block_meta));
   newChunk->size = size;
   newChunk->type = MEM_ALLOCATED;
-  newChunk->preBlock = NULL;
   newChunk->nextBlock = NULL;
   newChunk->data = (void *)newChunk + sizeof(memory_block_meta);
 
@@ -89,16 +83,14 @@ void * ff_getBlock(size_t size) {
 void getBlock_info(memory_block_meta * chunk) {
   assert(chunk != NULL);
   fprintf(stderr, "=====printing info after ff_getBlock()=====\n");
-  fprintf(
-      stderr,
-      "chunk %p, size: %zu, chunk type: %d, nextBlock: %p, preBlock: %p, dataStartAddr: "
-      "%p\n",
-      chunk,
-      chunk->size,
-      chunk->type,
-      chunk->nextBlock,
-      chunk->preBlock,
-      chunk->data);
+  fprintf(stderr,
+          "chunk %p, size: %zu, chunk type: %d, nextBlock: %p,  dataStartAddr: "
+          "%p\n",
+          chunk,
+          chunk->size,
+          chunk->type,
+          chunk->nextBlock,
+          chunk->data);
 }
 
 void init_memory_control_block() {
