@@ -14,7 +14,7 @@ struct memory_block_meta {
   size_t size;    // unsiged long type do not include meta data size
   MEM_TYPE type;  // specfiy which type
   memory_block_meta * nextBlock;
-  memory_block_meta * prevBlock;
+  // memory_block_meta * prevBlock;
   void * data;  // start address of this memory block
 };
 

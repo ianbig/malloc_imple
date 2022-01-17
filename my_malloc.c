@@ -17,9 +17,7 @@ void * ff_malloc(size_t size) {
 
 void ff_free(void * toFree) {
   memory_block_meta * freeBlock = toFree - sizeof(memory_block_meta);
-  if (block_manager == NULL) {
-    init_memory_control_block();
-  }
+  assert(block_manager != NULL);
 
   if (freeBlock->type == MEM_FREE) {
     fprintf(stderr, "Error: double free at adress %p\n", freeBlock);
@@ -33,11 +31,12 @@ void ff_free(void * toFree) {
 void * insertToList(void * toAdd) {
   ((memory_block_meta *)toAdd)->nextBlock = block_manager->freeListHead;
   block_manager->freeListHead = toAdd;
-#ifdef DEBUG
+#ifdef NDEBUG
   fprintf(stderr,
           "adding new chunk %p with size %zu to free list\n",
           toAdd,
           ((memory_block_meta *)toAdd)->size);
+  printList();
 #endif
 }
 
@@ -51,7 +50,25 @@ void * removeFromList(void * toRemove) {
   assert(*ptr != NULL);
   void * ret = *ptr;
   *ptr = (*ptr)->nextBlock;
+
+#ifdef NDEBUG
+  fprintf(stderr,
+          "remove chunk %p with size %zu\n",
+          toRemove,
+          ((memory_block_meta *)toRemove)->size);
+  printList();
+#endif
   return ret;
+}
+
+void printList() {
+  memory_block_meta * ptr = block_manager->freeListHead;
+  while (ptr != NULL) {
+    fprintf(stderr, "%p with size %zu ---->  ", ptr, ptr->size);
+    ptr = ptr->nextBlock;
+  }
+
+  fprintf(stderr, "NULL\n");
 }
 
 void * mergeBlock(memory_block_meta * freeBlock) {
@@ -69,13 +86,13 @@ void * mergeBlock(memory_block_meta * freeBlock) {
 
       freeBlock->size += ((memory_block_meta *)curNode)->size;
 
-#ifdef DEBUG
-      fprint(stderr,
-             "merging memory block %p with size and %p with size\n",
-             freeBlock,
-             freeBlock->size,
-             curNode,
-             curNode->size);
+#ifdef NDEBUG
+      fprintf(stderr,
+              "merging memory block %p with size %zu and %p with size %zu\n",
+              freeBlock,
+              freeBlock->size,
+              curNode,
+              curNode->size);
 #endif
     }
     curNode = curNode->nextBlock;
@@ -94,6 +111,8 @@ void * ff_getBlock(size_t size) {
       memory_block_meta * retChunk = removeFromList(freePtr);
       return retChunk->data;
     }
+
+    freePtr = freePtr->nextBlock;
   }
 
   // not enough space in free list
