@@ -115,9 +115,12 @@ void * ff_getBlock(size_t size) {
   while (freePtr != NULL) {
     if (freePtr->size >= size) {
       // size and startAddr can use previous info as it would not change
-      // TODO: maintain the linked list
       freePtr->type = MEM_ALLOCATED;
       memory_block_meta * retChunk = removeFromList(freePtr);
+      void * remainChunk = sliceChunk(retChunk, size);
+      if (remainChunk != NULL) {
+        insertToList(remainChunk);
+      }
 #ifdef NDEBUG
       fprintf(stderr,
               "ff_getBlock(): get chunk from free list %p with size %zu\n",
@@ -131,6 +134,12 @@ void * ff_getBlock(size_t size) {
   }
 
   // not enough space in free list
+  memory_block_meta * newChunk = getNewBlock(size);
+
+  return newChunk->data;
+}
+
+void * getNewBlock(size_t size) {
   memory_block_meta * newChunk = sbrk(size + sizeof(memory_block_meta));
   newChunk->size = size;
   newChunk->type = MEM_ALLOCATED;
@@ -141,12 +150,34 @@ void * ff_getBlock(size_t size) {
   getBlock_info(newChunk);
 #endif
 
-  return newChunk->data;
+  return newChunk;
+}
+
+void * sliceChunk(memory_block_meta * chunk, size_t request) {
+  assert(chunk != NULL);
+  ssize_t remaining_size = chunk->size - request;
+  if (remaining_size <= sizeof(*chunk)) {
+    return NULL;
+  }
+
+  chunk->size = request;
+  memory_block_meta * remain_chunk = (void *)chunk + sizeof(*chunk) + request;
+  remain_chunk->size = remaining_size - sizeof(*remain_chunk);
+  remain_chunk->type = MEM_FREE;
+  remain_chunk->nextBlock = NULL;
+  remain_chunk->data = (void *)remain_chunk + sizeof(*remain_chunk);
+
+#ifdef NDEBUG
+  fprintf(stderr, "slicingChunk():\n");
+  getBlock_info(chunk);
+  getBlock_info(remain_chunk);
+#endif
+
+  return remain_chunk;
 }
 
 void getBlock_info(memory_block_meta * chunk) {
   assert(chunk != NULL);
-  fprintf(stderr, "=====printing info after ff_getBlock()=====\n");
   fprintf(stderr,
           "getBlock_info(): chunk %p, size: %zu, chunk type: %d, nextBlock: %p,  "
           "dataStartAddr: "

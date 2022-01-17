@@ -52,6 +52,13 @@ void * mergeBlock(memory_block_meta * freeBlock);
 // return removed block
 void * removeFromList(void * toRemove);
 void * insertToList(void * toAdd);
+/* @ chunk: data chunk to be sliced
+   return remaining unused chunuk with its meta data is set, if the space is not enough for meta data the function return NULL
+
+   slicChunk would split the passed in chunk to requested chunk and remaining chunk with meta data header, if the remaining chunk is not enough for wrtting meta head the NULL would be return
+*/
+void * sliceChunk(memory_block_meta * chunk, size_t request);
+void * getNewBlock(size_t size);
 
 /* debug function for linked list*/
 void printList();
