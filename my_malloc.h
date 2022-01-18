@@ -20,6 +20,7 @@ struct memory_block_meta {
 
 struct memory_control_block {
   void * freeListHead;
+  size_t heap_size;
   // TODO: maybe add some info to increase performace
 };
 

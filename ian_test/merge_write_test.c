@@ -17,5 +17,20 @@ int main() {
     ff_free(ptr[i]);
   }
 
+  char * cptr[3];
+  for (int i = 0; i < 3; i++) {
+    cptr[i] = ff_malloc(sizeof(char *) * 10);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 10; j++) {
+      cptr[i][j] = 'a';
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    ff_free(cptr[i]);
+  }
+
   return 0;
 }

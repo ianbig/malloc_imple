@@ -75,7 +75,7 @@ int main(int argc, char * argv[]) {
 
   size = 256;
   expected_sum += size * size;
-  array[5] = (int *)MALLOC(size * sizeof(int));
+  array[5] = (int *)MALLOC(size * sizeof(int));  // 1024
   for (i = 0; i < size; i++) {
     array[5][i] = size;
   }  //for i
@@ -89,7 +89,7 @@ int main(int argc, char * argv[]) {
 
   size = 23;
   expected_sum += size * size;
-  array[6] = (int *)MALLOC(size * sizeof(int));
+  array[6] = (int *)MALLOC(size * sizeof(int));  //92
   for (i = 0; i < size; i++) {
     array[6][i] = size;
   }  //for i
@@ -99,7 +99,7 @@ int main(int argc, char * argv[]) {
 
   size = 4;
   expected_sum += size * size;
-  array[7] = (int *)MALLOC(size * sizeof(int));
+  array[7] = (int *)MALLOC(size * sizeof(int));  // 16
   for (i = 0; i < size; i++) {
     array[7][i] = size;
   }  //for i
@@ -111,7 +111,7 @@ int main(int argc, char * argv[]) {
 
   size = 10;
   expected_sum += size * size;
-  array[8] = (int *)MALLOC(size * sizeof(int));
+  array[8] = (int *)MALLOC(size * sizeof(int));  // 40
   for (i = 0; i < size; i++) {
     array[8][i] = size;
   }  //for i
@@ -121,7 +121,7 @@ int main(int argc, char * argv[]) {
 
   size = 32;
   expected_sum += size * size;
-  array[9] = (int *)MALLOC(size * sizeof(int));
+  array[9] = (int *)MALLOC(size * sizeof(int));  // 128
   for (i = 0; i < size; i++) {
     array[9][i] = size;
   }  //for i

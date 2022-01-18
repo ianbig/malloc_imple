@@ -145,6 +145,7 @@ void * getNewBlock(size_t size) {
   newChunk->type = MEM_ALLOCATED;
   newChunk->nextBlock = NULL;
   newChunk->data = (void *)newChunk + sizeof(memory_block_meta);
+  
 
 #ifdef NDEBUG
   getBlock_info(newChunk);
