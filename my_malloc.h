@@ -14,7 +14,7 @@ struct memory_block_meta {
   size_t size;    // unsiged long type do not include meta data size
   MEM_TYPE type;  // specfiy which type
   memory_block_meta * nextBlock;
-  // memory_block_meta * prevBlock;
+  memory_block_meta * prevBlock;
   void * data;  // start address of this memory block
 };
 
@@ -51,7 +51,7 @@ void bf_free(void * ptr);
 // merge the adjacent block with freeBlock, and remove merged block in free list (TODO: try to refactor this since it violate SRP)
 void * mergeBlock(memory_block_meta * freeBlock);
 // return removed block
-void * removeFromList(void * toRemove);
+void * removeFromList(memory_block_meta * toRemove);
 void * insertToList(void * toAdd);
 /* @ chunk: data chunk to be sliced
    return remaining unused chunuk with its meta data is set, if the space is not enough for meta data the function return NULL
@@ -60,7 +60,13 @@ void * insertToList(void * toAdd);
 */
 void * sliceChunk(memory_block_meta * chunk, size_t request);
 void * getNewBlock(size_t size);
+unsigned long get_data_segment_size();
+unsigned long get_data_segment_free_space_size();
 
 /* debug function for linked list*/
+size_t split_times = 0;
+size_t merge_times = 0;
+size_t insert_to_list_times = 0;
+size_t remove_from_list_times = 0;
 void printList();
 #endif

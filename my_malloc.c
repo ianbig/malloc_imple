@@ -30,8 +30,27 @@ void ff_free(void * toFree) {
 }
 
 void * insertToList(void * toAdd) {
+  if (block_manager->freeListHead == NULL) {
+    ((memory_block_meta *)toAdd)->nextBlock = NULL;
+    ((memory_block_meta *)toAdd)->prevBlock = NULL;
+    block_manager->freeListHead = toAdd;
+
+#ifdef NDEBUG
+    fprintf(stderr,
+            "insertToList(): adding new chunk %p with size %zu to free list\n",
+            toAdd,
+            ((memory_block_meta *)toAdd)->size);
+    printList();
+#endif
+
+    return toAdd;
+  }
+
   ((memory_block_meta *)toAdd)->nextBlock = block_manager->freeListHead;
+  ((memory_block_meta *)toAdd)->prevBlock = NULL;
+  ((memory_block_meta *)block_manager->freeListHead)->prevBlock = toAdd;
   block_manager->freeListHead = toAdd;
+
 #ifdef NDEBUG
   fprintf(stderr,
           "insertToList(): adding new chunk %p with size %zu to free list\n",
@@ -39,19 +58,24 @@ void * insertToList(void * toAdd) {
           ((memory_block_meta *)toAdd)->size);
   printList();
 #endif
+
+  return toAdd;
 }
 
-// TODO: improve algorithmatic performance to O(1) by convert to doubly linked list
-void * removeFromList(void * toRemove) {
-  memory_block_meta ** ptr = (memory_block_meta **)(&(block_manager->freeListHead));
-  while (*ptr != NULL && *ptr != toRemove) {
-    ptr = &((*ptr)->nextBlock);
+void * removeFromList(memory_block_meta * toRemove) {
+  if (toRemove == block_manager->freeListHead) {
+    block_manager->freeListHead = toRemove->nextBlock;
+  }
+  if (toRemove->prevBlock != NULL) {
+    toRemove->prevBlock->nextBlock = toRemove->nextBlock;
+  }
+  if (toRemove->nextBlock != NULL) {
+    toRemove->nextBlock->prevBlock = toRemove->prevBlock;
   }
 
-  assert(*ptr != NULL);
-  memory_block_meta * ret = *ptr;
-  ret->nextBlock = NULL;
-  *ptr = (*ptr)->nextBlock;
+  toRemove->nextBlock = NULL;
+  toRemove->prevBlock = NULL;
+
 #ifdef NDEBUG
   fprintf(stderr,
           "removeFromList(): remove chunk %p with size %zu\n",
@@ -59,20 +83,32 @@ void * removeFromList(void * toRemove) {
           ((memory_block_meta *)toRemove)->size);
   printList();
 #endif
-  return ret;
+  return toRemove;
 }
 
 void printList() {
   memory_block_meta * ptr = block_manager->freeListHead;
-  while (ptr != NULL) {
+  while (ptr != NULL && ptr->nextBlock != NULL) {
     fprintf(stderr, "%p with size %zu ---->  ", ptr, ptr->size);
     ptr = ptr->nextBlock;
   }
 
+  memory_block_meta * prePtr = ptr;
+  if (ptr != NULL) {
+    fprintf(stderr, "%p with size %zu ---->  ", ptr, ptr->size);
+  }
+
+  fprintf(stderr, "NULL\n");
+
+  while (prePtr != NULL) {
+    fprintf(stderr, "%p with size %zu ---->  ", prePtr, prePtr->size);
+    prePtr = prePtr->prevBlock;
+  }
   fprintf(stderr, "NULL\n");
 }
 
 void * mergeBlock(memory_block_meta * freeBlock) {
+  merge_times += 1;  // TODO remove this
   memory_block_meta * curNode = block_manager->freeListHead;
 
   while (curNode != NULL) {
@@ -84,12 +120,17 @@ void * mergeBlock(memory_block_meta * freeBlock) {
     if ((freeBlockStart == endCurNode) ||
         (startCurNode == freeBlockEnd)) {  // memory adjacent
 
+      void * prevBlock = curNode->prevBlock;
+      void * nextBlock = curNode->nextBlock;
       curNode = removeFromList(curNode);
       if (freeBlockStart == endCurNode) {
         void * tmp = curNode;
         curNode = freeBlock;
         freeBlock = tmp;
       }
+
+      freeBlock->nextBlock = nextBlock;
+      freeBlock->prevBlock = prevBlock;
       freeBlock->size += curNode->size + sizeof(*freeBlock);
 
 #ifdef NDEBUG
@@ -134,17 +175,19 @@ void * ff_getBlock(size_t size) {
   }
 
   // not enough space in free list
-  memory_block_meta * newChunk = getNewBlock(size);
+  memory_block_meta * newChunk = getNewBlock(size + sizeof(memory_block_meta));
 
   return newChunk->data;
 }
 
 void * getNewBlock(size_t size) {
-  memory_block_meta * newChunk = sbrk(size + sizeof(memory_block_meta));
-  newChunk->size = size;
+  memory_block_meta * newChunk = sbrk(size);
+  newChunk->size = size - sizeof(*newChunk);
   newChunk->type = MEM_ALLOCATED;
   newChunk->nextBlock = NULL;
+  newChunk->prevBlock = NULL;
   newChunk->data = (void *)newChunk + sizeof(memory_block_meta);
+  block_manager->heap_size += size;
 
 #ifdef NDEBUG
   getBlock_info(newChunk);
@@ -155,7 +198,7 @@ void * getNewBlock(size_t size) {
 
 void * sliceChunk(memory_block_meta * chunk, size_t request) {
   assert(chunk != NULL);
-  ssize_t remaining_size = chunk->size - request;
+  size_t remaining_size = (chunk->size >= request) ? chunk->size - request : 0;
   if (remaining_size <= sizeof(*chunk)) {
     return NULL;
   }
@@ -182,12 +225,14 @@ void getBlock_info(memory_block_meta * chunk) {
   assert(chunk != NULL);
   fprintf(stderr,
           "getBlock_info(): chunk %p, size: %zu, chunk type: %d, nextBlock: %p,  "
+          "prevBlock: %p,"
           "dataStartAddr: "
           "%p\n",
           chunk,
           chunk->size,
           chunk->type,
           chunk->nextBlock,
+          chunk->prevBlock,
           chunk->data);
 }
 
@@ -200,4 +245,18 @@ void init_memory_control_block() {
   fprintf(
       stderr, "init_memory_control_block(): block_manager at addr %p\n", block_manager);
 #endif
+}
+
+unsigned long get_data_segment_size() {
+  return block_manager->heap_size;
+}
+
+unsigned long get_data_segment_free_space_size() {
+  memory_block_meta * ptr = block_manager->freeListHead;
+  unsigned long free_space_size = 0;
+  while (ptr != NULL) {
+    free_space_size += ptr->size + sizeof(*ptr);
+    ptr = ptr->nextBlock;
+  }
+  return free_space_size;
 }
