@@ -30,6 +30,7 @@ void ff_free(void * toFree) {
 }
 
 void * insertToList(void * toAdd) {
+  insert_to_list_times += 1;  // TODO: remove this
   if (block_manager->freeListHead == NULL) {
     ((memory_block_meta *)toAdd)->nextBlock = NULL;
     ((memory_block_meta *)toAdd)->prevBlock = NULL;
@@ -63,6 +64,7 @@ void * insertToList(void * toAdd) {
 }
 
 void * removeFromList(memory_block_meta * toRemove) {
+  remove_from_list_times += 1;
   if (toRemove == block_manager->freeListHead) {
     block_manager->freeListHead = toRemove->nextBlock;
   }
@@ -181,6 +183,7 @@ void * ff_getBlock(size_t size) {
 }
 
 void * getNewBlock(size_t size) {
+  get_new_chunk_times += 1;
   memory_block_meta * newChunk = sbrk(size);
   newChunk->size = size - sizeof(*newChunk);
   newChunk->type = MEM_ALLOCATED;
@@ -197,7 +200,8 @@ void * getNewBlock(size_t size) {
 }
 
 void * sliceChunk(memory_block_meta * chunk, size_t request) {
-  assert(chunk != NULL);
+  split_times += 1;       // TODO: remove this
+  assert(chunk != NULL);  // TODO: remove this
   size_t remaining_size = (chunk->size >= request) ? chunk->size - request : 0;
   if (remaining_size <= sizeof(*chunk)) {
     return NULL;
@@ -259,4 +263,13 @@ unsigned long get_data_segment_free_space_size() {
     ptr = ptr->nextBlock;
   }
   return free_space_size;
+}
+
+void print_alloc_info() {
+  fprintf(stderr, "number of time to get new chunks: %zu\n", get_new_chunk_times);
+  fprintf(stderr, "number of time to split: %zu\n", split_times);
+  fprintf(stderr, "number of time to merge: %zu\n", merge_times);
+  fprintf(stderr, "number of time to insert to linked list: %zu\n", insert_to_list_times);
+  fprintf(
+      stderr, "number of time to remove from linked list: %zu\n", remove_from_list_times);
 }

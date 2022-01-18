@@ -63,10 +63,12 @@ void * getNewBlock(size_t size);
 unsigned long get_data_segment_size();
 unsigned long get_data_segment_free_space_size();
 
-/* debug function for linked list*/
+/* debug info*/
+size_t get_new_chunk_times = 0;
 size_t split_times = 0;
 size_t merge_times = 0;
 size_t insert_to_list_times = 0;
 size_t remove_from_list_times = 0;
 void printList();
+void print_alloc_info();
 #endif
