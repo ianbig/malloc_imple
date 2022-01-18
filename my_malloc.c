@@ -25,10 +25,11 @@ void ff_free(void * toFree) {
   }
 
   freeBlock->type = MEM_FREE;
-  freeBlock = mergeBlock(freeBlock);
   insertToList(freeBlock);
+  mergeBlock(freeBlock);
 }
 
+/*
 void * insertToList(void * toAdd) {
   insert_to_list_times += 1;  // TODO: remove this
   if (block_manager->freeListHead == NULL) {
@@ -57,6 +58,137 @@ void * insertToList(void * toAdd) {
           "insertToList(): adding new chunk %p with size %zu to free list\n",
           toAdd,
           ((memory_block_meta *)toAdd)->size);
+  printList();
+#endif
+
+  return toAdd;
+}
+*/
+
+/*
+void * mergeBlock(memory_block_meta * freeBlock) {
+  merge_times += 1;  // TODO remove this
+  memory_block_meta * curNode = block_manager->freeListHead;
+
+  while (curNode != NULL) {
+    void * freeBlockStart = freeBlock;
+    void * freeBlockEnd = freeBlockStart + sizeof(memory_block_meta) + freeBlock->size;
+    void * startCurNode = curNode;
+    void * endCurNode = startCurNode + sizeof(memory_block_meta) + curNode->size;
+
+    if ((freeBlockStart == endCurNode) ||
+        (startCurNode == freeBlockEnd)) {  // memory adjacent
+
+      void * prevBlock = curNode->prevBlock;
+      void * nextBlock = curNode->nextBlock;
+      curNode = removeFromList(curNode);
+      if (freeBlockStart == endCurNode) {
+        void * tmp = curNode;
+        curNode = freeBlock;
+        freeBlock = tmp;
+      }
+
+      freeBlock->nextBlock = nextBlock;
+      freeBlock->prevBlock = prevBlock;
+      freeBlock->size += curNode->size + sizeof(*freeBlock);
+
+#ifdef NDEBUG
+      fprintf(
+          stderr,
+          "mergeBlock(): merging memory block %p with size %zu and %p with size %zu\n",
+          freeBlock,
+          freeBlock->size - curNode->size - sizeof(*freeBlock),
+          curNode,
+          curNode->size);
+#endif
+      curNode = freeBlock;  // curNode point to new chunk meta data
+    }
+
+    curNode = curNode->nextBlock;
+  }
+
+  return freeBlock;
+}
+*/
+
+void * mergeBlock(memory_block_meta * merged) {
+  memory_block_meta * prev_block_end = NULL;
+  memory_block_meta * prev_block_start = merged->prevBlock;
+  if (merged->prevBlock != NULL) {
+    prev_block_end = prev_block_start + sizeof(*prev_block_end) + prev_block_start->size;
+  }
+
+  memory_block_meta * next_block_start = merged->nextBlock;
+
+  memory_block_meta *freeBlock = NULL, *curNode = NULL;  // TODO: remove this
+
+  if (next_block_start != NULL && merged == next_block_start) {
+    merged->size += sizeof(next_block_start) + next_block_start->size;
+    removeFromList(next_block_start);
+
+    // TODO: remove this
+    freeBlock = merged;
+    curNode = next_block_start;
+  }
+
+  else if (prev_block_start != NULL &&
+           merged + sizeof(*merged) + merged->size == prev_block_end) {
+    prev_block_start->size += sizeof(merged) + merged->size;
+    removeFromList(merged);
+
+    // TODO: remove this
+    curNode = merged;
+    freeBlock = prev_block_start;
+  }
+
+#ifdef NDEBUG
+  fprintf(stderr,
+          "mergeBlock(): merging memory block %p with size %zu and %p with size %zu\n",
+          freeBlock,
+          freeBlock->size - curNode->size - sizeof(*freeBlock),
+          curNode,
+          curNode->size);
+  printList();
+#endif
+
+  return NULL;
+}
+
+void * insertToList(memory_block_meta * toAdd) {
+  assert(toAdd != NULL);
+  memory_block_meta * curNode = block_manager->freeListHead;
+  while (curNode != NULL && curNode->nextBlock != NULL && curNode < toAdd) {
+    curNode = (curNode)->nextBlock;
+  }
+
+  if (curNode == NULL) {
+    block_manager->freeListHead = toAdd;
+    toAdd->nextBlock = NULL;
+    toAdd->prevBlock = NULL;
+  }
+
+  else if (curNode == block_manager->freeListHead && toAdd < curNode) {
+    toAdd->nextBlock = curNode;
+    curNode->prevBlock = toAdd;
+    toAdd->prevBlock = NULL;
+    block_manager->freeListHead = toAdd;
+  }
+
+  else if (curNode->nextBlock == NULL) {
+    curNode->nextBlock = toAdd;
+    toAdd->prevBlock = curNode;
+    toAdd->nextBlock = NULL;
+  }
+
+  else {
+    toAdd->nextBlock = curNode;
+    toAdd->prevBlock = curNode->prevBlock;
+    curNode->prevBlock = toAdd;
+    toAdd->prevBlock->nextBlock = toAdd;
+  }
+
+#ifdef NDEBUG
+  fprintf(stderr, "adding Node %p with size %zu to List\n", toAdd, toAdd->size);
   printList();
 #endif
 
@@ -107,50 +239,6 @@ void printList() {
     prePtr = prePtr->prevBlock;
   }
   fprintf(stderr, "NULL\n");
-}
-
-void * mergeBlock(memory_block_meta * freeBlock) {
-  merge_times += 1;  // TODO remove this
-  memory_block_meta * curNode = block_manager->freeListHead;
-
-  while (curNode != NULL) {
-    void * freeBlockStart = freeBlock;
-    void * freeBlockEnd = freeBlockStart + sizeof(memory_block_meta) + freeBlock->size;
-    void * startCurNode = curNode;
-    void * endCurNode = startCurNode + sizeof(memory_block_meta) + curNode->size;
-
-    if ((freeBlockStart == endCurNode) ||
-        (startCurNode == freeBlockEnd)) {  // memory adjacent
-
-      void * prevBlock = curNode->prevBlock;
-      void * nextBlock = curNode->nextBlock;
-      curNode = removeFromList(curNode);
-      if (freeBlockStart == endCurNode) {
-        void * tmp = curNode;
-        curNode = freeBlock;
-        freeBlock = tmp;
-      }
-
-      freeBlock->nextBlock = nextBlock;
-      freeBlock->prevBlock = prevBlock;
-      freeBlock->size += curNode->size + sizeof(*freeBlock);
-
-#ifdef NDEBUG
-      fprintf(
-          stderr,
-          "mergeBlock(): merging memory block %p with size %zu and %p with size %zu\n",
-          freeBlock,
-          freeBlock->size - curNode->size - sizeof(*freeBlock),
-          curNode,
-          curNode->size);
-#endif
-      curNode = freeBlock;  // curNode point to new chunk meta data
-    }
-
-    curNode = curNode->nextBlock;
-  }
-
-  return freeBlock;
 }
 
 void * ff_getBlock(size_t size) {

@@ -1,7 +1,0 @@
-#include <stdlib.h>
-
-#include "my_malloc.h"
-
-int main() {
-  memeory_block_meta * ptr = malloc(sizeof(*ptr));
-}

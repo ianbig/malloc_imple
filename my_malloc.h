@@ -49,15 +49,16 @@ void bf_free(void * ptr);
 
 /* ===== helper function  ======*/
 // merge the adjacent block with freeBlock, and remove merged block in free list (TODO: try to refactor this since it violate SRP)
-void * mergeBlock(memory_block_meta * freeBlock);
+void * mergeBlock(memory_block_meta * mergedBlock);
 // return removed block
 void * removeFromList(memory_block_meta * toRemove);
-void * insertToList(void * toAdd);
+void * insertToList(memory_block_meta * toAdd);
 /* @ chunk: data chunk to be sliced
    return remaining unused chunuk with its meta data is set, if the space is not enough for meta data the function return NULL
 
    slicChunk would split the passed in chunk to requested chunk and remaining chunk with meta data header, if the remaining chunk is not enough for wrtting meta head the NULL would be return
 */
+void * removeFromList(memory_block_meta * toRemove);
 void * sliceChunk(memory_block_meta * chunk, size_t request);
 void * getNewBlock(size_t size);
 unsigned long get_data_segment_size();
