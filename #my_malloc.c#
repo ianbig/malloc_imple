@@ -29,6 +29,8 @@ void ff_free(void * toFree) {
   mergeBlock(freeBlock);
 }
 
+void bf_free(vo
+
 void bf_free(void * ptr) {
   ff_free(ptr);
 }

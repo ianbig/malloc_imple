@@ -82,6 +82,7 @@ int main(int argc, char * argv[]) {
   printf("Execution Time = %f seconds\n", elapsed_ns / 1e9);
   printf("Fragmentation  = %f\n",
          (float)data_segment_free_space / (float)data_segment_size);
+  print_alloc_info();
 
   for (i = 0; i < NUM_ITEMS; i++) {
     FREE(spacing_array[i]);
