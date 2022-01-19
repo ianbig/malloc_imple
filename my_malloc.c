@@ -1,11 +1,11 @@
 #include "my_malloc.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-// TODO: split the memory size
 void * ff_malloc(size_t size) {
   if (block_manager == NULL) {
     init_memory_control_block();
@@ -29,8 +29,52 @@ void ff_free(void * toFree) {
   mergeBlock(freeBlock);
 }
 
+void * bf_malloc(size_t size) {
+  if (block_manager == NULL) {
+    init_memory_control_block();
+  }
+  // find free list for first freed block
+  void * chunk = bf_getBlock(size);
+  return chunk;
+}
+
 void bf_free(void * ptr) {
   ff_free(ptr);
+}
+
+void * bf_getBlock(size_t size) {
+  memory_block_meta * freePtr = block_manager->freeListHead;
+  size_t best_size = INT_MAX;
+  memory_block_meta * best_block = NULL;
+  while (freePtr != NULL) {
+    if (freePtr->size == size) {
+      best_block = freePtr;
+      break;
+    }
+
+    if (freePtr->size > size && best_size > freePtr->size) {
+      best_block = freePtr;
+      best_size = freePtr->size;
+    }
+
+    freePtr = freePtr->nextBlock;
+  }
+
+  if (best_block != NULL) {
+    removeFromList(best_block);
+    void * remainChunk = sliceChunk(best_block, size);
+    if (remainChunk != NULL) {
+      insertToList(remainChunk);
+    }
+  }
+
+  else {
+    best_block = getNewBlock(size + sizeof(memory_block_meta));
+  }
+
+  best_block->type = MEM_ALLOCATED;
+
+  return best_block->data;
 }
 
 /*
@@ -126,7 +170,7 @@ void * mergeBlock(memory_block_meta * merged) {
 
   memory_block_meta * next_block_start = merged->nextBlock;
 
-  // memory_block_meta *freeBlock = NULL, *curNode = NULL;  // TODO: remove this
+  memory_block_meta *freeBlock = NULL, *curNode = NULL;  // TODO: remove this
 
   if (next_block_start != NULL &&
       (void *)merged + sizeof(*merged) + merged->size == next_block_start) {
@@ -134,8 +178,8 @@ void * mergeBlock(memory_block_meta * merged) {
     removeFromList(next_block_start);
 
     // TODO: remove this
-    // freeBlock = merged;
-    // curNode = next_block_start;
+    freeBlock = merged;
+    curNode = next_block_start;
   }
 
   if (prev_block_start != NULL &&
@@ -145,8 +189,8 @@ void * mergeBlock(memory_block_meta * merged) {
     removeFromList(merged);
 
     // TODO: remove this
-    // curNode = merged;
-    // freeBlock = prev_block_start;
+    curNode = merged;
+    freeBlock = prev_block_start;
   }
 
 #ifdef NDEBUG

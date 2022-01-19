@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -Wall -Werror -Wextra -O3 -fPIC
+CFLAGS= -O3 -fPIC
 DEPS=my_malloc.h
 
 .PNONY=lib debug

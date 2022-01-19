@@ -45,6 +45,7 @@ void getBlock_info(memory_block_meta * chunk);
 
 /* ===== best fit ======*/
 void * bf_malloc(size_t size);
+void * bf_getBlock(size_t size);
 void bf_free(void * ptr);
 
 /* ===== helper function  ======*/
